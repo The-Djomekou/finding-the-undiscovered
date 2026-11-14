@@ -218,3 +218,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Large data stays out of git
+data/raw/
+data/processed/earth_features.parquet
+data/processed/scores.parquet
+*.tif
+*.nc
+.streamlit/secrets.toml
+.DS_Store

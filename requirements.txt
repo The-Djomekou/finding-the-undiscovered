@@ -1,0 +1,15 @@
+earthengine-api
+geemap
+numpy
+pandas
+pyarrow
+scipy
+scikit-learn
+xarray
+rioxarray
+geopandas
+streamlit
+plotly
+leafmap
+jupyterlab
+pytest
