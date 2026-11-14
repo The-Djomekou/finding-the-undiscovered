@@ -29,7 +29,7 @@ NASA: MODIS, SMAP, MERRA-2, NASADEM, ASTER, LRO (LOLA, Diviner, Mini-RF), Mars O
 
 ## Team
 
-Names and roles.
+Guilhem, Eli, Meriem, Monhel, Leea, Florian and roles (for later).
 
 ## License
 
