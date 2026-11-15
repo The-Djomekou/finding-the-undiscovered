@@ -1,0 +1,5 @@
+feature,value,iqr,n_blocks,source
+slope_med_deg,10.381880371619367,7.855868051918058,16,"LOLA LDEM_80S_80MPP_ADJ (Barker et al. 2023), Shackleton +/- 20 km, 120 m"
+slope_iqr_deg,2.599102403981761,0.5424892254253466,16,"LOLA LDEM_80S_80MPP_ADJ (Barker et al. 2023), Shackleton +/- 20 km, 120 m"
+roughness_m,18.022969956217715,14.638611709409268,16,"LOLA LDEM_80S_80MPP_ADJ (Barker et al. 2023), Shackleton +/- 20 km, 120 m"
+relief_m,1953.7400360107422,1909.3732452392578,16,"LOLA LDEM_80S_80MPP_ADJ (Barker et al. 2023), Shackleton +/- 20 km, 120 m"

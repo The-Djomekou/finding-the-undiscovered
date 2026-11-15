@@ -1,3 +1,4 @@
+# Written with assistance from Claude (Anthropic); reviewed by the team.
 """Finding the Undiscovered: demo app. Run with:  streamlit run app/streamlit_app.py"""
 from pathlib import Path
 
@@ -8,8 +9,8 @@ import plotly.graph_objects as go
 import streamlit as st
 
 SCORES = Path(__file__).resolve().parents[1] / "data" / "processed" / "sites.parquet"
-CRITERIA = {"s1": "Geology", "s2": "Terrain", "s3": "Temperature", "s4": "Water, ice",
-            "s5": "Dust, wind", "s8": "Operations"}
+CRITERIA = {"s1": "Surface material", "s2": "Terrain", "s3": "Illumination", "s4": "Water, ice",
+            "s5": "Dust, wind", "s7": "Subsurface", "s8": "Mobility"}
 # Ordered colours: Tier 1 brightest, Tier 4 most muted (readable on a dark background)
 TIER_COLOURS = {"Tier 1": "#ffd166", "Tier 2": "#f4845f", "Tier 3": "#c75d8f", "Tier 4": "#8d8fa8"}
 
@@ -28,7 +29,7 @@ def load_sites():
                        "lat": rng.uniform(-60, 75, n), "lon": rng.uniform(-170, 170, n),
                        "body": rng.choice(["Moon", "Mars"], n),
                        "target": rng.choice(["Jezero EZ", "Malapert Massif", "Arcadia EZ"], n),
-                       "tier": rng.choice(list(TIER_COLOURS), n)})
+                       "tier": rng.choice(list(TIER_COLOURS), n), "synthetic": True})
     for col in CRITERIA:
         df[col] = rng.uniform(0, 1, n)
     df.loc[df["body"] == "Moon", "s5"] = np.nan  # wind does not apply on the Moon
@@ -39,7 +40,8 @@ def world_map(df):
     """Sites on an Equal Earth map, coloured by tier."""
     fig = px.scatter_geo(df, lat="lat", lon="lon", color="tier", custom_data=["site"],
                          hover_name="site",
-                         hover_data={"target": True, "tier": True, "lat": ":.2f", "lon": ":.2f"},
+                         hover_data={c: True for c in ["target", "tier"] if c in df}
+                         | {"lat": ":.2f", "lon": ":.2f"},
                          color_discrete_map=TIER_COLOURS,
                          category_orders={"tier": list(TIER_COLOURS)},
                          projection="equal earth")
@@ -54,12 +56,31 @@ def world_map(df):
 
 
 sites = load_sites()
+for col in CRITERIA:
+    if col not in sites:
+        sites[col] = np.nan
+if "synthetic" in sites and bool(sites["synthetic"].any()):
+    st.warning("Synthetic test data: these sites test the app and are not results.")
 with st.sidebar:
     body = st.radio("Analog for", ["Moon", "Mars"], horizontal=True)
-    tiers = st.multiselect("Tiers", list(TIER_COLOURS), default=list(TIER_COLOURS))
-view = sites[(sites["body"] == body) & sites["tier"].isin(tiers)]
+    has_best = "best_on_continent" in sites
+    modes = (["Best sites on each continent"] if has_best else []) + ["Choose tiers"]
+    mode = st.radio("Show", modes)
+    if mode == "Choose tiers":
+        default_tiers = list(TIER_COLOURS) if len(sites) <= 5000 else ["Tier 1", "Tier 2"]  # keep the map fast
+        tiers = st.multiselect("Tiers", list(TIER_COLOURS), default=default_tiers)
+    else:
+        st.caption("Every site in the highest tier reached on its continent.")
+    continents = sorted(sites["continent"].dropna().unique())
+    chosen = st.multiselect("Continents", continents, default=continents)
+keep = (sites["body"] == body) & sites["continent"].isin(chosen)
+keep &= sites["best_on_continent"].astype(bool) if mode != "Choose tiers" else sites["tier"].isin(tiers)
+view = sites[keep]
 
-st.subheader(f"{len(view)} candidate sites")
+st.subheader(f"{len(view):,} candidate sites")
+if view.empty:
+    st.info(f"No {body} sites yet: run the {body} profile of the pipeline first.")
+    st.stop()
 event = st.plotly_chart(world_map(view), on_select="rerun", selection_mode="points",
                         key="world_map", width="stretch")
 st.caption("Equal Earth projection: every region is shown at its true relative size. "
