@@ -108,16 +108,21 @@ NASA's 47 candidate human Exploration Zones.
 
 ## AI assistance
 
-This project was built with help from Claude (Anthropic), a large language model. The idea, the
-selection and filtering of the Artemis III criteria, and the final thresholds, weights and site size
-are the team's. Claude helped write and debug the code (Earth Engine exports, scoring, validation,
-shadow modelling, the book and summary generators and the Streamlit app) and draft the project text.
-The team reviewed and tested everything. Each AI-assisted script starts with a line saying so. No
-AI-generated images, video or audio are used.
+We used Claude (Anthropic), a large language model, as a coding and writing assistant during the hackathon.
+
+**What the team did:** the project idea and research question; the choice of a global similarity ranking; the selection of the Artemis III criteria and how to measure them on Earth; all final decisions on thresholds, weights, site size and the list of known analogs to exclude; running the pipeline on Google Earth Engine and our own computers; checking the results; and the final text.
+
+**What Claude helped with:** writing and debugging the Python code (the Earth Engine exports, scoring, validation, shadow modelling, the book and executive-summary generators, and the Streamlit app); suggesting data-quality checks that we then adopted (removing lakes, ice sheets, and squares that are half ice and half water); and drafting documentation and submission text, which we edited.
+
+Every AI-assisted script starts with the line "Written with assistance from Claude (Anthropic); reviewed by the team." No AI-generated images, video or audio are used. All results come from running the code on the data listed above.
 
 ## Team
 
-[Names and roles]
+- **Eli:** conceptualization, methodology, investigation, writing (original draft)
+- **Meriem:** methodology, investigation, final written package and proofreading
+- **Guilhem:** methodology, final written package and proofreading
+- **Monhel:** front-end design
+- **Leea:** final written package and proofreading
 
 ## License
 
