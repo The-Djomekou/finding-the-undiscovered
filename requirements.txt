@@ -10,6 +10,7 @@ rioxarray
 geopandas
 streamlit
 plotly
+matplotlib
 leafmap
 jupyterlab
 pytest

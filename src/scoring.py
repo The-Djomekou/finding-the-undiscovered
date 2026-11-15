@@ -1,3 +1,4 @@
+# Written with assistance from Claude (Anthropic); reviewed by the team.
 """Similarity scoring for Finding the Undiscovered.
 
 Formulas, as in the project brief:
@@ -6,6 +7,8 @@ Formulas, as in the project brief:
     S   = sum_c w_c * s_c / sum_c w_c                 overall score, 0 to 1
 A criterion is met when s_c >= 0.70. Match ratio = criteria met / criteria scored.
 """
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 from scipy import ndimage
@@ -131,6 +134,19 @@ def haversine_km(lat1, lon1, lat2, lon2):
     a = (np.sin((lat2 - lat1) / 2) ** 2
          + np.cos(lat1) * np.cos(lat2) * np.sin((lon2 - lon1) / 2) ** 2)
     return 6371.0 * 2 * np.arcsin(np.sqrt(a))
+
+
+def load_known(docs_dir):
+    """Known analogs to exclude: docs/known_analogs.csv plus docs/known_analogs_extra.csv if present."""
+    import pandas as pd
+    docs_dir = Path(docs_dir)
+    parts = []
+    for name, which in (("known_analogs.csv", "main"), ("known_analogs_extra.csv", "extra")):
+        if (docs_dir / name).exists():
+            df = pd.read_csv(docs_dir / name)
+            df["list"] = which
+            parts.append(df)
+    return pd.concat(parts, ignore_index=True)
 
 
 def exclude_known(earth, known, buffer_km=50):
