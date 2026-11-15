@@ -121,7 +121,7 @@ Every AI-assisted script starts with the line "Written with assistance from Clau
 - **Eli:** conceptualization, methodology, investigation, writing (original draft)
 - **Meriem:** methodology, investigation, final written package and proofreading
 - **Guilhem:** methodology, final written package and proofreading
-- **Monhel:** front-end design
+- **Monhel:** machine learning, frontend design, project deployment
 - **Leea:** final written package and proofreading
 
 ## License
