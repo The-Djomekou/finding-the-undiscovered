@@ -20,8 +20,28 @@ FINGERPRINT = ROOT / "docs" / "moon_fingerprint.csv"
 DOSSIERS = ROOT / "docs" / "dossiers"
 KNOWN = [(ROOT / "docs" / "known_analogs.csv", "main list"),
          (ROOT / "docs" / "known_analogs_extra.csv", "extra list")]
+BANNER = ROOT / "app" / "assets" / "banner.jpg"
+BANNER_FOCUS = "center 55%"  # which part of the photo the banner shows (horizontal, vertical)
+BANNER_CREDIT = "Earthset, photographed by the Artemis II crew through an Orion window on 6 April 2026. Image: NASA"
+LOGOS = [ROOT / "app" / "assets" / f"space_apps_logo.{ext}" for ext in ("png", "svg", "jpg")]  # spaceappschallenge.org/brand
+BODY_IMAGES = {"Moon": (ROOT / "app" / "assets" / "moon.jpg", "🌙"),
+               "Mars": (ROOT / "app" / "assets" / "mars.jpg", "🔴")}
+IMAGE_CREDITS = ("Moon: Galileo spacecraft, NASA/JPL. Mars: Viking 1 Orbiter mosaic, NASA/USGS. "
+                 "Banner: Earthset, Artemis II, NASA.")
+REPO_URL = "https://github.com/The-Djomekou/finding-the-undiscovered"
+PAGES_URL = "https://the-djomekou.github.io/finding-the-undiscovered"
+KPI_COLOURS = ["#1f4e79", "#2e9e6b", "#e06c3c", "#6b4f9e"]  # same as the executive summary
+WEIGHTS = [("☀️ Illumination", 0.467, "#e3a800"), ("❄️ Water, ice", 0.277, "#3d8bfd"),
+           ("⛰️ Terrain, mobility", 0.160, "#2eaa72"), ("🏜️ Regolith, soil", 0.095, "#c27c2c")]
 ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-ESRI_CREDIT = "Imagery: Esri World Imagery (Esri, Maxar, Earthstar Geographics)"
+ESRI_CREDIT = "Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+S2 = "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/{z}/{y}/{x}.jpg"
+S2_CREDIT = ("Sentinel-2 cloudless - <a href='https://s2maps.eu' target='_blank'>https://s2maps.eu</a> by EOX IT "
+             "Services GmbH (Contains modified Copernicus Sentinel data 2024)")
+MAPLIBRE = ("<link rel='stylesheet' href='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css' integrity="
+            "'sha384-MinO0mNliZ3vwppuPOUnGa+iq619pfMhLVUXfC4LHwSCvF9H+6P/KO4Q7qBOYV5V' crossorigin='anonymous'>"
+            "<script src='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js' integrity="
+            "'sha384-SYKAG6cglRMN0RVvhNeBY0r3FYKNOJtznwA0v7B5Vp9tr31xAHsZC0DqkQ/pZDmj' crossorigin='anonymous'></script>")
 # Shackleton crater at 120 m (00_moon_fingerprint.py), used when the CSV is not in the repo
 SHACKLETON = {"slope_med_deg": 10.38, "roughness_m": 18.02, "relief_m": 1953.7}
 MET = 0.70
@@ -70,6 +90,25 @@ html, body, .stApp, [data-testid="stSidebar"], [data-testid="stMarkdownContainer
              letter-spacing: -0.5px; }
 .app-sub { font-size: 1.15rem; opacity: .8; margin-bottom: 1.2rem; }
 @media (max-width: 700px) { .app-title { font-size: 2.4rem; } }
+.banner { border-radius: 14px; padding: 2.6rem 2.2rem 1.6rem; margin: 0.2rem 0 0.4rem; min-height: 250px;
+          display: flex; flex-direction: column; justify-content: flex-end; background-size: cover; }
+.banner .app-title { color: #ffffff; text-shadow: 0 2px 12px rgba(0,0,0,.7); margin: 0; }
+.banner .app-sub { color: #f2f2f2; opacity: 1; text-shadow: 0 1px 8px rgba(0,0,0,.8); margin: .4rem 0 0; }
+.credit { font-size: .78rem; opacity: .65; margin-bottom: 1rem; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: .4rem 0 1.2rem; }
+.kpi { color: #ffffff; border-radius: 10px; padding: 12px 14px; font-size: .9rem; line-height: 1.25; }
+.kpi b { display: block; font-size: 2rem; font-weight: 800; margin-bottom: 2px; }
+@media (max-width: 700px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+.side-h { font-weight: 700; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; opacity: .7;
+          margin: .6rem 0 .3rem; }
+.wrow { display: grid; grid-template-columns: 1fr 52px 34px; gap: 6px; align-items: center; font-size: .8rem;
+        margin: 3px 0; }
+.wtrack { background: #2b313b; height: 8px; border-radius: 4px; overflow: hidden; }
+.wtrack span { display: block; height: 8px; }
+.trow { display: flex; gap: 8px; align-items: baseline; font-size: .85rem; margin: 3px 0; }
+.tdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
+[data-testid="stSidebar"] [role="radiogroup"] img { height: 2.1em !important; max-height: none !important;
+          vertical-align: middle; margin-right: .3rem; }
 </style>""", unsafe_allow_html=True)
 
 
@@ -116,6 +155,48 @@ def shackleton():
             vals = dict(zip(fp["feature"], fp["value"]))
             out.update({k: float(vals[k]) for k in SHACKLETON if k in vals and pd.notna(vals[k])})
     return out
+
+
+def stamp(path):
+    """File modification time (0 if missing), so cached images refresh when a file is added or replaced."""
+    return path.stat().st_mtime if path.exists() else 0
+
+
+@st.cache_data
+def chip(path_str, mtime, px=96):
+    """A photo cropped to a round icon, as a data URI for widget labels; None if the file is absent."""
+    if not mtime:
+        return None
+    import base64
+    import io
+    from PIL import Image, ImageDraw
+    im = Image.open(path_str).convert("RGB")
+    s = min(im.size)
+    im = im.crop(((im.width - s) // 2, (im.height - s) // 2, (im.width + s) // 2, (im.height + s) // 2))
+    im = im.resize((px, px), Image.LANCZOS)
+    mask = Image.new("L", (px, px), 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, px - 1, px - 1), fill=255)
+    im.putalpha(mask)
+    buf = io.BytesIO()
+    im.save(buf, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+
+
+@st.cache_data
+def banner_css(mtime):
+    """The banner photo as a CSS background (downscaled so the page stays light); None if absent."""
+    if not mtime:
+        return None
+    import base64
+    import io
+    from PIL import Image
+    im = Image.open(BANNER).convert("RGB")
+    im.thumbnail((2000, 2000))
+    buf = io.BytesIO()
+    im.save(buf, format="JPEG", quality=82)
+    data = base64.b64encode(buf.getvalue()).decode()
+    return (f"background-image: linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.55) 100%), "
+            f"url(data:image/jpeg;base64,{data}); background-position: {BANNER_FOCUS};")
 
 
 def scored_criteria(df):
@@ -166,52 +247,128 @@ def donut(value, label, colour, size=170):
 
 
 def criteria_bars(row):
+    """Each criterion as a gauge: grey track to 100%, coloured fill, grid every 10%, value on the right."""
     names, vals, colours, texts = [], [], [], []
     for n, name, col, icon, _, _ in CRITERIA_8:
         v = row.get(col) if col else np.nan
         label, colour = band(v)
         names.append(f"{icon} {n}. {name}")
-        vals.append(0 if pd.isna(v) else v)
+        vals.append(np.nan if pd.isna(v) else float(np.clip(v, 0, 1)))
         colours.append(colour)
-        texts.append("not scored" if pd.isna(v) else f"{100 * v:.0f}%")
-    fig = go.Figure(go.Bar(x=vals, y=names, orientation="h", marker_color=colours, text=texts,
-                           textposition="outside", cliponaxis=False, hoverinfo="skip",
-                           textfont={"size": 15}))
-    fig.add_vline(x=MET, line_dash="dot", line_color="#aaaaaa", annotation_text="met at 70%",
-                  annotation_position="top", annotation_font_size=14)
-    fig.update_layout(height=470, margin={"l": 0, "r": 20, "t": 60, "b": 10}, showlegend=False,
-                      xaxis={"range": [0, 1.22], "tickvals": [0, .5, 1], "tickformat": ".0%", "title": "",
-                             "tickfont": {"size": 14}},
-                      yaxis={"autorange": "reversed", "tickfont": {"size": 16}}, bargap=0.28,
-                      paper_bgcolor="rgba(0,0,0,0)", font={"family": FONT},
-                      title={"text": "The 8 criteria at this site", "font": {"size": 24}})
+        texts.append("not scored" if pd.isna(v) else f"<b>{100 * v:.0f}%</b>")
+    scored = [not np.isnan(v) for v in vals]
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=[1] * len(names), y=names, orientation="h", hoverinfo="skip", showlegend=False,
+                         marker={"color": ["#2b313b" if ok else "#1c2028" for ok in scored],
+                                 "line": {"color": "#3a4250", "width": 1}}))
+    fig.add_trace(go.Bar(x=[0 if np.isnan(v) else v for v in vals], y=names, orientation="h", showlegend=False,
+                         marker_color=colours, hovertemplate="%{y}: %{x:.0%}<extra></extra>"))
+    fig.add_trace(go.Scatter(x=[1.04] * len(names), y=names, mode="text",
+                             text=[t if ok else "" for t, ok in zip(texts, scored)], textposition="middle right",
+                             textfont={"size": 16}, hoverinfo="skip", showlegend=False, cliponaxis=False))
+    fig.add_trace(go.Scatter(x=[0.03] * len(names), y=names, mode="text",
+                             text=["" if ok else "not scored" for ok in scored], textposition="middle right",
+                             textfont={"size": 13, "color": "#8a8f98"}, hoverinfo="skip", showlegend=False))
+    for i in range(1, 10):  # grid over the bars, inside the 0 to 100% track only
+        fig.add_shape(type="line", x0=i / 10, x1=i / 10, y0=0, y1=1, yref="paper", layer="above",
+                      line={"color": "rgba(255,255,255,0.35)" if i % 2 == 0 else "rgba(255,255,255,0.15)",
+                            "width": 1})
+    fig.add_vline(x=MET, line_dash="dash", line_color="#ffffff", line_width=1.5, annotation_text="met at 70%",
+                  annotation_position="top", annotation_font_size=13)
+    fig.update_layout(barmode="overlay", bargap=0.32, height=480, showlegend=False,
+                      margin={"l": 0, "r": 10, "t": 64, "b": 10}, paper_bgcolor="rgba(0,0,0,0)",
+                      plot_bgcolor="rgba(0,0,0,0)", font={"family": FONT},
+                      title={"text": "The 8 criteria at this site", "font": {"size": 24}},
+                      xaxis={"range": [0, 1.2], "tickvals": [0, .2, .4, .6, .8, 1], "tickformat": ".0%",
+                             "tickfont": {"size": 13}, "showgrid": False, "zeroline": False, "title": ""},
+                      yaxis={"autorange": "reversed", "tickfont": {"size": 16}})
     return fig
 
 
-def satellite(row, zoom=9):
+def embed_html(html, height):
+    """Show a self-contained HTML page (st.iframe in recent Streamlit, components.html in older versions)."""
+    if hasattr(st, "iframe"):
+        st.iframe(html, height=height)
+    else:
+        import streamlit.components.v1 as components
+        components.html(html, height=height)
+
+
+def satellite_html(row):
+    """MapLibre satellite map of the site: two small imagery tabs, metric scale bar, the 10 km square in yellow.
+
+    Esri is drawn as two layers: a coarse one that exists everywhere (stretched when zoomed in), and a sharp one
+    on top whose missing tiles are refused (blankTile=false) instead of served as grey "Map data not yet
+    available" squares, so where Esri has no sharp imagery the coarse layer shows through.
+    """
     lat, lon = float(row["lat"]), float(row["lon"])
     h = CELL_DEG / 2
     w = h / max(np.cos(np.radians(lat)), 0.05)
-    box_lat = [lat - h, lat - h, lat + h, lat + h, lat - h]
-    box_lon = [lon - w, lon + w, lon + w, lon - w, lon - w]
-    layer = {"below": "traces", "sourcetype": "raster", "sourceattribution": ESRI_CREDIT, "source": [ESRI]}
-    try:  # plotly 5.24 and later (MapLibre)
-        fig = go.Figure(go.Scattermap(lat=box_lat, lon=box_lon, mode="lines",
-                                      line={"color": "#ffd166", "width": 2}, hoverinfo="skip"))
-        fig.add_trace(go.Scattermap(lat=[lat], lon=[lon], mode="markers", marker={"size": 11, "color": "#ffd166"},
-                                    hovertext=[row["site"]], hoverinfo="text"))
-        fig.update_layout(map={"style": "white-bg", "center": {"lat": lat, "lon": lon}, "zoom": zoom,
-                               "layers": [layer]})
-    except AttributeError:  # older plotly
-        fig = go.Figure(go.Scattermapbox(lat=box_lat, lon=box_lon, mode="lines",
-                                         line={"color": "#ffd166", "width": 2}, hoverinfo="skip"))
-        fig.add_trace(go.Scattermapbox(lat=[lat], lon=[lon], mode="markers",
-                                       marker={"size": 11, "color": "#ffd166"}))
-        fig.update_layout(mapbox={"style": "white-bg", "center": {"lat": lat, "lon": lon}, "zoom": zoom,
-                                  "layers": [layer]})
-    fig.update_layout(height=470, margin={"l": 0, "r": 0, "t": 0, "b": 0}, showlegend=False,
-                      font={"family": FONT})
-    return fig
+    ring = [[lon - w, lat - h], [lon + w, lat - h], [lon + w, lat + h], [lon - w, lat + h], [lon - w, lat - h]]
+    cfg = json.dumps({"lat": lat, "lon": lon, "ring": ring,
+                      "view": [[lon - 3 * w, lat - 3 * h], [lon + 3 * w, lat + 3 * h]],  # about 30 km across
+                      "esri": ESRI, "esriCredit": ESRI_CREDIT, "s2": S2, "s2Credit": S2_CREDIT})
+    return f"""<!doctype html><html><head><meta charset="utf-8">{MAPLIBRE}<style>
+html, body, #map {{ height: 100%; margin: 0; background: #0e1117; }}
+#map {{ border-radius: 10px; overflow: hidden; }}
+#tabs {{ position: absolute; top: 8px; left: 8px; z-index: 2; display: flex; gap: 2px; padding: 2px;
+        background: rgba(14,17,23,.8); border-radius: 999px; font: 600 11px Montserrat, system-ui, sans-serif; }}
+#tabs button {{ border: 0; background: transparent; color: #cfd3da; padding: 3px 10px; border-radius: 999px;
+               cursor: pointer; font: inherit; }}
+#tabs button.on {{ background: #ffd166; color: #111; }}
+.maplibregl-ctrl-scale {{ background: rgba(14,17,23,.8); color: #fff; border-color: #fff;
+                         font: 600 11px Montserrat, system-ui, sans-serif; }}
+.maplibregl-ctrl-attrib {{ font-size: 10px; max-width: calc(100% - 130px); }}
+#err {{ color: #cfd3da; font: 13px system-ui, sans-serif; padding: 16px; }}
+#overlay {{ position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }}
+</style></head><body>
+<div id="tabs"><button class="on" data-l="esri" title="Esri World Imagery: sharpest where available">Esri</button>
+<button data-l="s2" title="Sentinel-2 cloudless 2024: 10 m everywhere">Sentinel-2</button></div>
+<div id="map"></div><script>
+const c = {cfg};
+if (!window.maplibregl) {{
+  document.getElementById('map').innerHTML = '<div id="err">The map could not load (no internet connection?).</div>';
+}} else {{
+  const map = new maplibregl.Map({{
+    container: 'map', attributionControl: false, maxZoom: 18, dragRotate: false, pitchWithRotate: false,
+    bounds: c.view,
+    style: {{ version: 8,
+      sources: {{
+        esri_base: {{ type: 'raster', tiles: [c.esri], tileSize: 256, maxzoom: 13, attribution: c.esriCredit }},
+        esri_sharp: {{ type: 'raster', tiles: [c.esri + '?blankTile=false'], tileSize: 256, minzoom: 14,
+                      maxzoom: 19, attribution: c.esriCredit }},
+        s2: {{ type: 'raster', tiles: [c.s2], tileSize: 256, maxzoom: 14, attribution: c.s2Credit }}
+      }},
+      layers: [
+        {{ id: 'esri_base', type: 'raster', source: 'esri_base' }},
+        {{ id: 'esri_sharp', type: 'raster', source: 'esri_sharp', minzoom: 13 }},
+        {{ id: 's2', type: 'raster', source: 's2', layout: {{ visibility: 'none' }} }}
+      ] }}
+  }});
+  // The 10 km square and the site point are drawn as an SVG overlay rather than GeoJSON layers: inside
+  // Streamlit's iframe, MapLibre's web worker (which GeoJSON needs) cannot talk back to the page.
+  const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('id', 'overlay');
+  const box = document.createElementNS(NS, 'polygon'), dot = document.createElementNS(NS, 'circle');
+  box.setAttribute('fill', 'none'); box.setAttribute('stroke', '#ffd166'); box.setAttribute('stroke-width', '2');
+  dot.setAttribute('r', '5'); dot.setAttribute('fill', '#ffd166'); dot.setAttribute('stroke', '#0e1117');
+  svg.append(box, dot); map.getContainer().appendChild(svg);
+  const draw = () => {{
+    box.setAttribute('points', c.ring.map(p => {{ const q = map.project(p); return q.x + ',' + q.y; }}).join(' '));
+    const s = map.project([c.lon, c.lat]); dot.setAttribute('cx', s.x); dot.setAttribute('cy', s.y);
+  }};
+  map.on('move', draw); map.on('resize', draw); draw();
+  map.addControl(new maplibregl.NavigationControl({{ showCompass: false }}), 'top-right');
+  map.addControl(new maplibregl.ScaleControl({{ maxWidth: 110, unit: 'metric' }}), 'bottom-left');
+  map.addControl(new maplibregl.AttributionControl({{ compact: false }}), 'bottom-right');
+  const LAYERS = {{ esri: ['esri_base', 'esri_sharp'], s2: ['s2'] }};
+  document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', () => {{
+    document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
+    for (const [k, ids] of Object.entries(LAYERS))
+      ids.forEach(id => map.setLayoutProperty(id, 'visibility', k === b.dataset.l ? 'visible' : 'none'));
+  }}));
+}}
+</script></body></html>"""
 
 
 # ---------------------------------------------------------------- selection helpers
@@ -263,14 +420,51 @@ def rank_single(df, col, how, target):
 # ---------------------------------------------------------------- page
 sites = load_sites()
 known = load_known()
-st.markdown("<div class='app-title'>🌍 Finding the Undiscovered</div>"
-            "<div class='app-sub'>New Earth analog sites for NASA's Artemis Moon Base, scored against the "
-            "Artemis III landing criteria.</div>", unsafe_allow_html=True)
+title_html = ("<div class='app-title'>🌍 Finding the Undiscovered</div>"
+              "<div class='app-sub'>New Earth analog sites for NASA's Artemis Moon Base, scored against the "
+              "Artemis III landing criteria.</div>")
+bg = banner_css(stamp(BANNER))
+if bg:
+    st.markdown(f"<div class='banner' style=\"{bg}\">{title_html}</div>"
+                f"<div class='credit'>{BANNER_CREDIT}</div>", unsafe_allow_html=True)
+else:
+    st.markdown(f"<div class='banner' style='background: linear-gradient(120deg, #0f2238 0%, #1f4e79 55%, "
+                f"#2e86ab 100%)'>{title_html}</div>", unsafe_allow_html=True)
+
+body_labels = {}
+for name, (path, emoji) in BODY_IMAGES.items():
+    icon = chip(str(path), stamp(path))
+    body_labels[name] = f"![{name}]({icon}) {name}" if icon else f"{emoji} {name}"
+
 with st.sidebar:
-    body = st.radio("Analog for", ["Moon", "Mars"], horizontal=True)
-    st.markdown("**Overall match** = weighted score of the criteria, by the Artemis priorities: "
-                "illumination 47%, ice 28%, terrain and mobility 16%, regolith and soil 10%.")
-    st.markdown("**A criterion is met** at a score of 70% or more.")
+    logo = next((p for p in LOGOS if p.exists()), None)
+    if logo:
+        st.image(str(logo), width="stretch")
+    else:
+        st.markdown("## NASA Space Apps Challenge")
+    st.caption("Sherbrooke local event, 2026")
+    body = st.radio("Analog for", list(BODY_IMAGES), horizontal=True, format_func=body_labels.get)
+    st.markdown("<div class='side-h'>Filter every view</div>", unsafe_allow_html=True)
+    min_match = st.slider("Minimum overall match (%)", 0, 100, 0, step=5,
+                          help="Hide sites whose overall match is below this value, on every tab.")
+    st.markdown("<div class='side-h'>How sites are scored</div>", unsafe_allow_html=True)
+    st.markdown("".join(f"<div class='wrow'><span>{lab}</span><span class='wtrack'><span style='width:{w * 100:.0f}%;"
+                        f"background:{c}'></span></span><span>{w * 100:.0f}%</span></div>" for lab, w, c in WEIGHTS),
+                unsafe_allow_html=True)
+    st.caption("Overall match = weighted score, by the Artemis priorities. A criterion is met at 70% or more.")
+    st.markdown("<div class='side-h'>Tiers</div>", unsafe_allow_html=True)
+    st.markdown("".join(f"<div class='trow'><span class='tdot' style='background:{c}'></span><span><b>{t}</b>: "
+                        f"{TIER_RULES[t]}</span></div>" for t, c in TIER_COLOURS.items()), unsafe_allow_html=True)
+    st.markdown("<div class='side-h'>More</div>", unsafe_allow_html=True)
+    st.markdown(f"- [📖 The site book]({PAGES_URL}/book/)\n- [📄 Executive summary]({PAGES_URL}/executive_summary.html)"
+                f"\n- [💻 Code and data on GitHub]({REPO_URL})")
+    with st.expander("Data sources"):
+        st.markdown("NASA LRO LOLA, MODIS vegetation and land cover · ESA Copernicus DEM · ERA5-Land · "
+                    "OpenLandMap · TerraClimate · Natural Earth · Esri World Imagery · Sentinel-2 cloudless by EOX. "
+                    "Processed in Google Earth Engine.")
+        st.caption(IMAGE_CREDITS)
+    with st.expander("Team"):
+        st.markdown("Eli · Meriem · Guilhem · Monhel · Leea")
     if bool(sites.get("synthetic", pd.Series([False])).any()):
         st.warning("Synthetic test data: these are not results.")
 if body == "Mars":
@@ -280,11 +474,19 @@ if body == "Mars":
 if "site" not in st.session_state or st.session_state["site"] not in set(sites["site_code"]):
     st.session_state["site"] = sites["site_code"].iloc[0]
 
-k1, k2, k3, k4 = st.columns(4)
-k1.metric("New candidate sites", f"{len(sites):,}")
-k2.metric("Continents", sites["continent"].nunique())
-k3.metric("Overall match above 70%", f"{int((sites['S'] > MET).sum()):,}")
-k4.metric("Known analogs excluded (50 km)", len(known))
+kpis = [(f"{len(sites):,}", "new candidate sites"), (f"{sites['continent'].nunique()}", "continents"),
+        (f"{int((sites['S'] > MET).sum()):,}", "overall match above 70%"),
+        (f"{len(known)}", "known analogs excluded (50 km)")]
+st.markdown("<div class='kpis'>" + "".join(f"<div class='kpi' style='background:{c}'><b>{v}</b>{t}</div>"
+                                           for (v, t), c in zip(kpis, KPI_COLOURS)) + "</div>",
+            unsafe_allow_html=True)
+all_sites = sites
+sites = sites[sites["S"] * 100 >= min_match] if min_match else sites
+if sites.empty:
+    st.warning("No site reaches that minimum overall match. Lower it in the side menu.")
+    st.stop()
+if min_match:
+    st.caption(f"Showing {len(sites):,} of {len(all_sites):,} sites (overall match {min_match}% or more).")
 
 tab_map, tab_tiers, tab_crit, tab_cont = st.tabs(["🗺️ Map", "🏅 Tiers", "🎯 8 criteria", "🌍 Continents"])
 
@@ -393,17 +595,18 @@ with tab_cont:
 
 # ---------------------------------------------------------------- selected site
 st.divider()
-codes = list(sites["site_code"])
+codes = list(all_sites["site_code"])  # every site stays reachable here, whatever the filter
+names_by_code = dict(zip(all_sites["site_code"], all_sites["site"]))
 code = st.selectbox("🔎 Site details (or click a site above)", codes, index=codes.index(st.session_state["site"]),
-                    format_func=lambda c: sites.loc[sites["site_code"] == c, "site"].iloc[0])
+                    format_func=lambda c: names_by_code[c])
 st.session_state["site"] = code
-row = sites[sites["site_code"] == code].iloc[0]
+row = all_sites[all_sites["site_code"] == code].iloc[0]
 tier_colour = TIER_COLOURS.get(row["tier"], "#999999")
 st.markdown(f"### {row['site']} &nbsp;<span style='background:{tier_colour};color:#111;padding:2px 10px;"
             f"border-radius:10px;font-size:0.8em'>{row['tier']}</span>", unsafe_allow_html=True)
 area = f" · {row['area_km2']:,.0f} km²" if pd.notna(row["area_km2"]) else ""
 st.caption(f"{row['lat']:.2f}, {row['lon']:.2f} · {row['continent']}{area} · rank {int(row['rank']):,} of "
-           f"{len(sites):,} · best match: {row['target']}")
+           f"{len(all_sites):,} · best match: {row['target']}")
 
 sc = scored_criteria(sites)
 ratio = row["n_met"] / row["n_scored"] if pd.notna(row["n_met"]) and row["n_scored"] else np.nan
@@ -426,8 +629,10 @@ with left:
                 unsafe_allow_html=True)
 with right:
     st.markdown("#### 🛰️ Satellite view")
-    st.plotly_chart(satellite(row), width="stretch", key="sat_site")
-    st.caption(f"{ESRI_CREDIT}. The yellow box is the 10 km square scored here; a site can span several squares.")
+    embed_html(satellite_html(row), height=470)
+    st.caption("Switch imagery with the tabs, top left. Where Esri has no sharp imagery, its coarser layer shows "
+               "instead of grey tiles. The yellow box is the 10 km square scored here; a site can span several "
+               "squares.")
 
 
 def fmt(v, spec, unit=""):

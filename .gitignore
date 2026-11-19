@@ -227,3 +227,5 @@ data/processed/scores.parquet
 *.nc
 .streamlit/secrets.toml
 .DS_Store
+data/processed/earth_scores_moon.parquet
+data/processed/earth_features.parquet

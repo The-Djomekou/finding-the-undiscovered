@@ -1,3 +1,4 @@
+# Written with assistance from Claude (Anthropic); reviewed by the team.
 """Block 1, Earth: turn the Earth Engine GeoTIFFs into one table of grid cells.
 
 Reads every GeoTIFF in data/raw/earth/, keeps land cells, adds longitude and latitude, the
@@ -8,6 +9,7 @@ data/raw/regolith_thickness_m.tif (Pelletier et al. 2016, ORNL DAAC 1304, free E
 Output: data/processed/earth_features.parquet
 """
 import sys
+import warnings
 from pathlib import Path
 from urllib.request import urlretrieve
 
@@ -110,16 +112,49 @@ def add_landcover(df):
 
 
 def add_regolith(df):
+    """Regolith thickness per cell: the mean over the whole 10 km square, not one 1 km pixel.
+
+    File: average_soil_and_sedimentary-deposit_thickness.tif (Pelletier et al. 2016, ORNL DAAC 1304),
+    saved as data/raw/regolith_thickness_m.tif. Metres, 0 to 50 (50 means 50 m or more); other values
+    are no data. Read in strips of rows to keep memory low.
+    """
     if not REGOLITH.exists():
         print("no regolith file: criterion 7 (subsurface) will be skipped")
         return df
+    from rasterio.windows import Window
+    target_deg = 10000 / 111320  # one 10 km cell
     with rasterio.open(REGOLITH) as src:
+        res = abs(src.transform.a)
+        k = max(1, int(round(target_deg / res)))  # source pixels per side of a coarse block
+        rows, cols = -(-src.height // k), -(-src.width // k)
+        coarse = np.full((rows, cols), np.nan, dtype="float32")
+        step = k * max(1, 1200 // k)
+        for r0 in range(0, src.height, step):
+            h = min(step, src.height - r0)
+            a = src.read(1, window=Window(0, r0, src.width, h)).astype("float32")
+            bad = (a < 0) | (a > 50)
+            if src.nodata is not None:
+                bad |= a == src.nodata
+            a[bad] = np.nan
+            ph, pw = -(-h // k) * k, cols * k
+            pad = np.full((ph, pw), np.nan, dtype="float32")
+            pad[:h, :src.width] = a
+            blocks = pad.reshape(ph // k, k, cols, k)
+            with warnings.catch_warnings():  # all-empty blocks (sea) give NaN, which is what we want
+                warnings.simplefilter("ignore", RuntimeWarning)
+                mean = np.nanmean(blocks, axis=(1, 3))
+            coarse[r0 // k:r0 // k + mean.shape[0]] = mean
         t = Transformer.from_crs("EPSG:4326", src.crs, always_xy=True)
         xs, ys = t.transform(df["lon"].to_numpy(), df["lat"].to_numpy())
-        vals = np.array([v[0] for v in src.sample(zip(xs, ys))], dtype=float)
-        if src.nodata is not None:
-            vals[vals == src.nodata] = np.nan
+        c = ((xs - src.transform.c) / (res * k)).astype(int)
+        r = ((ys - src.transform.f) / (src.transform.e * k)).astype(int)
+    ok = (r >= 0) & (r < rows) & (c >= 0) & (c < cols)
+    vals = np.full(len(df), np.nan)
+    vals[ok] = coarse[r[ok], c[ok]]
     df["regolith_depth_cm"] = vals * 100
+    n = int(np.isfinite(vals).sum())
+    print(f"regolith added for {n:,} cells; {int((vals >= 2.5).sum()):,} have 2.5 m or more "
+          f"(criterion 7 met fully)")
     return df
 
 
